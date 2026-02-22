@@ -38,7 +38,7 @@ jobs:
         username: ${{ secrets.SSH_USER }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         port: 22
-        source: "docker-compose.yml,.env,postgres_init/"
+        source: "docker-compose.yml,.env,postgres_init/,scripts/backup.sh"
         target: "${{ secrets.WORK_DIR }}"
         overwrite: true
 
