@@ -12,8 +12,7 @@ The system is deployed via Docker Compose and relies on the following decoupled 
 
 * **Automation Engine:** The core workflow execution environment, configured for production (logging pruned, restricted memory limits) to ensure host stability.
 * **Relational Database:** The persistent storage layer, initialized automatically via DDL scripts to ensure environment consistency and idempotency.
-* **Edge Router / Reverse Proxy:** Acts as the single entry point. It manages TLS termination (automated certificate rotation), enforces secure HTTP headers, and routes internal network traffic.
-* **Docker Socket Proxy:** Protects the host's Docker daemon by exposing only a strictly filtered, read-only API to the edge router, preventing container escape vulnerabilities.
+* **Dynamic Ingress Integration (production):** Instead of bundling a dedicated proxy, the stack leverages dynamic environment variables and an external Docker network to auto-register with the host's central Edge Router. This router handles TLS termination and network routing natively.
 
 ## Security Posture
 

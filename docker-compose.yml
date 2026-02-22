@@ -1,56 +1,4 @@
 services:
-  docker-proxy:
-    image: tecnativa/docker-socket-proxy:v0.4.2
-    container_name: docker-proxy
-    restart: unless-stopped
-    environment:
-      - CONTAINERS=1
-      - NETWORKS=1
-      - EVENTS=1
-      - PING=1
-      - POST=0
-    volumes:
-      - "/var/run/docker.sock:/var/run/docker.sock:ro"
-    networks:
-      - n8n_net
-    deploy:
-      resources:
-        limits:
-          cpus: '0.2'
-          memory: 64M
-
-  traefik:
-    image: "traefik:v3.6"
-    container_name: "traefik"
-    restart: unless-stopped
-    command:
-      - "--api.insecure=false"
-      - "--api.dashboard=false"
-      - "--providers.docker.endpoint=tcp://docker-proxy:2375"
-      - "--providers.docker.exposedbydefault=false"
-      - "--entrypoints.web.address=:80"
-      - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
-      - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
-      - "--entrypoints.websecure.address=:443"
-      - "--certificatesresolvers.myresolver.acme.httpchallenge=true"
-      - "--certificatesresolvers.myresolver.acme.httpchallenge.entrypoint=web"
-      - "--certificatesresolvers.myresolver.acme.email=${SSL_EMAIL}"
-      - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - "./traefik_data:/letsencrypt"
-    networks:
-      - n8n_net
-    depends_on:
-      - docker-proxy
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 128M
-
   postgres:
     image: postgres:16-alpine
     container_name: postgres
@@ -100,6 +48,10 @@ services:
       - N8N_PERSONALIZATION_ENABLED=false
       - EXECUTIONS_DATA_PRUNE=true
       - EXECUTIONS_DATA_MAX_AGE=168
+      - VIRTUAL_HOST=${DOMAIN_NAME}
+      - VIRTUAL_PORT=5678
+      - LETSENCRYPT_HOST=${DOMAIN_NAME}
+      - LETSENCRYPT_EMAIL=${SSL_EMAIL}
     volumes:
       - n8n_data:/home/node/.n8n
     networks:
@@ -107,15 +59,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.n8n.rule=Host(`${DOMAIN_NAME}`)"
-      - "traefik.http.routers.n8n.entrypoints=websecure"
-      - "traefik.http.routers.n8n.tls.certresolver=myresolver"
-      - "traefik.http.services.n8n.loadbalancer.server.port=5678"
-      - "traefik.http.routers.n8n.middlewares=security-headers"
-      - "traefik.http.middlewares.security-headers.headers.sslredirect=true"
-      - "traefik.http.middlewares.security-headers.headers.stsseconds=31536000"
     deploy:
       resources:
         limits:
@@ -129,3 +72,5 @@ volumes:
 networks:
   n8n_net:
     external: false
+  reverse-proxy:
+    external: true
