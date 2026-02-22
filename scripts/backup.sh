@@ -32,7 +32,12 @@ echo "[$(date)] Starting backup of $SCRAPE_DB_NAME to $BACKUP_RCLONE_REMOTE:$BAC
 
 # --- Exécution ---
 # Note : Le mot de passe doit être géré via ~/.pgpass pour plus de sécurité
-pg_dump -U "$POSTGRES_USER" "$SCRAPE_DB_NAME" | gzip | rclone rcat "$BACKUP_RCLONE_REMOTE:$BACKUP_RCLONE_BUCKET/$BACKUP_NAME"
+CONTAINER_NAME="postgres" 
+
+# On utilise PGPASSWORD en variable d'env à l'intérieur du conteneur
+docker exec -e PGPASSWORD="$POSTGRES_PASSWORD" "$CONTAINER_NAME" \
+    pg_dump -U "$POSTGRES_USER" "$SCRAPE_DB_NAME" | gzip | \
+    rclone rcat "$BACKUP_RCLONE_REMOTE:$BACKUP_RCLONE_BUCKET/$BACKUP_NAME"
 
 # On capture le code de sortie du pipe
 EXIT_CODE=${PIPESTATUS[0]}
