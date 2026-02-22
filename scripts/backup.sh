@@ -15,7 +15,7 @@ else
 fi
 
 # --- Vérification des prérequis ---
-MANDATORY_VARS=(SCRAPE_DB_NAME POSTGRES_USER RCLONE_REMOTE RCLONE_BUCKET)
+MANDATORY_VARS=(SCRAPE_DB_NAME POSTGRES_USER BACKUP_RCLONE_REMOTE BACKUP_RCLONE_BUCKET)
 for var in "${MANDATORY_VARS[@]}"; do
     if [ -z "${!var}" ]; then
         echo "Error: Variable $var is not set in .env"
@@ -28,7 +28,7 @@ TIMESTAMP=$(date +%Y-%m-%d_%H-%M-%S)
 BACKUP_NAME="backup_${SCRAPE_DB_NAME}_${TIMESTAMP}.sql.gz"
 EXIT_CODE=0
 
-echo "[$(date)] Starting backup of $SCRAPE_DB_NAME to $RCLONE_REMOTE:$RCLONE_BUCKET..."
+echo "[$(date)] Starting backup of $SCRAPE_DB_NAME to $BACKUP_RCLONE_REMOTE:$BACKUP_RCLONE_BUCKET..."
 
 # --- Exécution ---
 # Note : Le mot de passe doit être géré via ~/.pgpass pour plus de sécurité
