@@ -23,6 +23,7 @@ jobs:
         POSTGRES_USER=${{ secrets.POSTGRES_USER }}
         POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
         POSTGRES_DB=${{ secrets.POSTGRES_DB }}
+        SCRAPE_DB_NAME=${{ secrets.SCRAPE_DB_NAME }}
         N8N_DEFAULT_BINARY_DATA_MODE=${{ secrets.N8N_DEFAULT_BINARY_DATA_MODE }}
         NODE_OPTIONS=${{ secrets.NODE_OPTIONS }}
         SSL_EMAIL=${{ secrets.SSL_EMAIL }}
