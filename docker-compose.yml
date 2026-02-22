@@ -29,6 +29,8 @@ services:
     image: n8nio/n8n:1.123.21
     container_name: n8n
     restart: unless-stopped
+    expose:
+      - "5678"
     environment:
       - N8N_HOST=${DOMAIN_NAME}
       - N8N_PORT=5678
@@ -56,6 +58,7 @@ services:
       - n8n_data:/home/node/.n8n
     networks:
       - n8n_net
+      - reverse-proxy
     depends_on:
       postgres:
         condition: service_healthy
