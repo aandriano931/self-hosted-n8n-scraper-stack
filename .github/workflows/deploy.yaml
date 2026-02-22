@@ -1,0 +1,62 @@
+name: Deploy n8n Production Stack
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy to VPS
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Generate .env file
+      run: |
+        cat > .env << EOF
+        DOMAIN_NAME=${{ secrets.DOMAIN_NAME }}
+        GENERIC_TIMEZONE=${{ secrets.GENERIC_TIMEZONE }}
+        POSTGRES_USER=${{ secrets.POSTGRES_USER }}
+        POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+        POSTGRES_DB=${{ secrets.POSTGRES_DB }}
+        N8N_DEFAULT_BINARY_DATA_MODE=${{ secrets.N8N_DEFAULT_BINARY_DATA_MODE }}
+        NODE_OPTIONS=${{ secrets.NODE_OPTIONS }}
+        SSL_EMAIL=${{ secrets.SSL_EMAIL }}
+        EOF
+
+    - name: Secure copy files to VPS (SCP)
+      uses: appleboy/scp-action@v0.1.7
+      with:
+        host: ${{ secrets.SSH_HOST }}
+        username: ${{ secrets.SSH_USER }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        port: 22
+        source: "docker-compose.yml,.env,postgres_init/"
+        target: "${{ secrets.WORK_DIR }}"
+        overwrite: true
+
+    - name: Execute Docker Compose via SSH
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.SSH_HOST }}
+        username: ${{ secrets.SSH_USER }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        port: 22
+        script: |
+          cd ${{ secrets.WORK_DIR }}
+          
+          # 1. Sécurisation stricte du fichier contenant les secrets
+          chmod 600 .env
+          
+          # 2. Mise à jour des images publiques (ex: correctifs de sécurité sur alpine/traefik)
+          docker compose pull
+          
+          # 3. Démarrage ou mise à jour de la stack en arrière-plan
+          docker compose up -d --remove-orphans
+          
+          # 4. Nettoyage des anciennes images pour éviter la saturation du disque du VPS
+          docker image prune -f
