@@ -2,43 +2,53 @@
 
 ## Overview
 
-This repository contains the Infrastructure as Code (IaC) configuration for a secure, self-hosted automation and data processing environment. The stack is designed to handle ETL (Extract, Transform, Load) pipelines and API orchestrations with a strong emphasis on security, network isolation, and automated deployment.
+This repository contains the Infrastructure as Code (IaC) configuration for a secure, self-hosted automation and data processing environment. The stack is designed to handle ETL (Extract, Transform, Load) pipelines and API orchestrations with a strong emphasis on security, network isolation, and **automated market intelligence using Large Language Models (LLM)**.
 
 The architecture is fully containerized and enforces strict "Zero Trust" principles for continuous integration and deployment.
 
 ## Architecture & Tech Stack
 
-The system is deployed via Docker Compose and relies on the following decoupled microservices:
+The system is deployed via Docker Compose and relies on the following decoupled layers:
 
-* **Automation Engine:** The core workflow execution environment, configured for production (logging pruned, restricted memory limits) to ensure host stability.
-* **Relational Database:** The persistent storage layer, initialized automatically via DDL scripts to ensure environment consistency and idempotency.
-* **Dynamic Ingress Integration (production):** Instead of bundling a dedicated proxy, the stack leverages dynamic environment variables and an external Docker network to auto-register with the host's central Edge Router. This router handles TLS termination and network routing natively.
+* **Automation Engine:** The core workflow execution environment (n8n), configured for production (filesystem binary mode) to ensure stability on memory-constrained hosts.
+* **Relational Database:** PostgreSQL instance for persistent storage, utilizing advanced UPSERT logic to track price movements and historical data.
+* **Intelligence Layer:** Integration with Google Gemini (or equivalent LLMs) to perform qualitative scoring and probabilistic market analysis.
+* **Off-site Storage:** S3-compatible Object Storage (Scaleway / AWS) for secure, immutable backups managed via **Rclone**.
+
+## Data Integrity & Backups
+
+To ensure business continuity, the infrastructure implements a robust "Off-site" backup strategy:
+
+* **Streaming Dumps:** Daily SQL dumps are performed and piped directly to Object Storage using `rclone rcat`. This "Streaming" approach eliminates the need for large local temporary files, preserving disk I/O and space.
+* **Lifecycle Management:** Retention is enforced at the storage provider level via Lifecycle Rules, automatically purging archives older than 30 days to optimize costs and comply with data minimization principles.
+
+## Monitoring & Observability
+
+The system follows a **"Silent Success"** philosophy to prevent alert fatigue:
+
+* **Critical Alerts:** Real-time notifications are sent via Discord Webhooks only in the event of pipeline failures, backup errors, or system-level exceptions.
+* **Memory Management:** Node.js heap limits (`--max-old-space-size`) are explicitly defined to prevent Out-Of-Memory (OOM) kills on VPS environments.
 
 ## Security Posture
 
-Security and system isolation are the core drivers of this configuration:
-
-* **Network Isolation:** The database instance does not expose any port to the public internet. Access is restricted to the internal Docker network, and explicitly bound to the host's local loopback to allow secure administration via SSH tunneling only.
-* **Zero Trust CI/CD:** No environment files or hardcoded credentials are tracked in version control. Secrets are injected ephemerally by the CI/CD runner during the deployment process and securely transferred via encrypted protocols.
-* **Privilege Separation:** The production deployment process operates under a dedicated, unprivileged service account, strictly isolated from root or personal directories, minimizing the blast radius in the event of a compromised pipeline.
-* **Immutable Infrastructure:** Containers are run with read-only configurations where applicable, and persistent data is strictly segregated into dedicated Docker volumes.
+* **Network Isolation:** The database instance does not expose any port to the public internet. Access is restricted to the internal Docker network.
+* **Secret Management:** No credentials or webhooks are tracked in version control. All sensitive data is injected via GitHub Actions Secrets and managed through environment variables on the host.
+* **Zero Trust CI/CD:** The deployment process uses short-lived, encrypted sessions to transfer the stack definition to the VPS.
 
 ## Continuous Deployment (CI/CD)
 
-The repository utilizes GitHub Actions to implement a push-based deployment strategy. The pipeline executes the following sequence:
+The repository utilizes GitHub Actions to implement a push-based deployment strategy:
 
-1. Provisions an ephemeral runner.
-2. Dynamically generates the required configuration files using encrypted platform secrets.
-3. Securely transfers the configuration definitions and initialization scripts to the target server.
-4. Executes the deployment orchestrator to pull updated images and recreate altered services non-disruptively.
-5. Performs garbage collection to clean up dangling images and prevent storage saturation over time.
+1. Provision an ephemeral runner and generate the `.env` from encrypted secrets.
+2. Deploy configuration files and maintenance scripts via SCP.
+3. Set execution permissions on deployment and backup scripts.
+4. Execute `docker compose up -d` with image pruning to ensure a lean host environment.
 
 ## Local Development Setup
 
-To run this stack locally, you must provide your own environment variables.
+To run this stack locally:
 
 1. Clone the repository.
-2. Duplicate the `.env.example` file to `.env` and populate it with your local development credentials.
-3. Execute the container orchestration command to start the stack in detached mode.
-
----
+2. `cp .env.example .env` and populate it with your credentials.
+3. Ensure **Rclone** is configured on your local machine to match the `BACKUP_RCLONE_REMOTE` variable.
+4. `docker compose up -d`

@@ -26,6 +26,9 @@ jobs:
         N8N_DEFAULT_BINARY_DATA_MODE=${{ secrets.N8N_DEFAULT_BINARY_DATA_MODE }}
         NODE_OPTIONS=${{ secrets.NODE_OPTIONS }}
         SSL_EMAIL=${{ secrets.SSL_EMAIL }}
+        BACKUP_RCLONE_REMOTE=${{ secrets.BACKUP_RCLONE_REMOTE }}
+        BACKUP_RCLONE_BUCKET=${{ secrets.BACKUP_RCLONE_BUCKET }}
+        DISCORD_WEBHOOK_URL=${{ secrets.DISCORD_WEBHOOK_URL }}
         EOF
 
     - name: Secure copy files to VPS (SCP)
